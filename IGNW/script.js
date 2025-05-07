@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM fully loaded and script running');
 
-    // Initialize Firebase (replace with your config from Firebase Console)
+    // Initialize Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyDG_GCVLfLYzIepcIi_BnuemIVfLccMPWg",
         authDomain: "ignitexyz-f459f.firebaseapp.com",
@@ -9,9 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
         storageBucket: "ignitexyz-f459f.firebasestorage.app",
         messagingSenderId: "631548240313",
         appId: "1:631548240313:web:f0896c75166336de805668"
-      };
+    };
 
-    // Initialize Firebase app and Firestore
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
@@ -84,188 +83,220 @@ document.addEventListener('DOMContentLoaded', () => {
         return sortedUsers.findIndex(user => user.email === currentUser.email) + 1;
     };
 
-// Register Page Logic
-const registerForm = document.getElementById('registerForm');
-if (registerForm) {
-    console.log('Register form found');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const solanaWalletInput = document.getElementById('solanaWallet');
-    const twitterInput = document.getElementById('twitter');
-    const inviteCodeInput = document.getElementById('inviteCode');
-    const termsCheckbox = document.getElementById('termsCheckbox');
-    const joinButton = document.getElementById('joinButton');
-    const errorMessage = document.createElement('div');
-    errorMessage.style.color = 'red';
-    errorMessage.style.fontSize = '12px';
-    errorMessage.style.marginTop = '10px';
-    registerForm.appendChild(errorMessage);
+    // Register Page Logic
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        console.log('Register form found');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const solanaWalletInput = document.getElementById('solanaWallet');
+        const twitterInput = document.getElementById('twitter');
+        const inviteCodeInput = document.getElementById('inviteCode');
+        const termsCheckbox = document.getElementById('termsCheckbox');
+        const joinButton = document.getElementById('joinButton');
+        const errorMessage = document.createElement('div');
+        errorMessage.style.color = 'red';
+        errorMessage.style.fontSize = '12px';
+        errorMessage.style.marginTop = '10px';
+        registerForm.appendChild(errorMessage);
 
-    // Auto-fill invite code from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const inviteCodeFromUrl = urlParams.get('ref');
-    if (inviteCodeFromUrl) {
-        inviteCodeInput.value = inviteCodeFromUrl;
-        console.log(`Auto-filled invite code: ${inviteCodeFromUrl}`);
-    }
-
-    // Validation rules
-    const validationRules = {
-        email: {
-            test: (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()),
-            message: 'Please enter a valid email.'
-        },
-        password: {
-            test: (value) => value.trim().length >= 8,
-            message: 'Password must be at least 8 characters.'
-        },
-        solanaWallet: {
-            test: (value) => value.trim().length >= 32,
-            message: 'Solana wallet address must be at least 32 characters.'
-        },
-        twitter: {
-            test: (value) => value.trim().length > 0,
-            message: 'Twitter handle is required.'
-        },
-        terms: {
-            test: () => termsCheckbox.checked,
-            message: 'You must agree to the terms.'
+        // Auto-fill invite code from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const referralCodeFromUrl = urlParams.get('ref');
+        if (referralCodeFromUrl && inviteCodeInput) {
+            console.log('Referral code from URL:', referralCodeFromUrl);
+            inviteCodeInput.value = referralCodeFromUrl;
         }
-    };
 
-    // Function to validate the entire form for enabling/disabling the Join button
-    const validateForm = () => {
-        const isEmailValid = validationRules.email.test(emailInput.value);
-        const isPasswordValid = validationRules.password.test(passwordInput.value);
-        const isSolanaWalletValid = validationRules.solanaWallet.test(solanaWalletInput.value);
-        const isTwitterValid = validationRules.twitter.test(twitterInput.value);
-        const isTermsValid = validationRules.terms.test();
+        const validateForm = () => {
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            const solanaWallet = solanaWalletInput.value.trim();
+            const twitter = twitterInput.value.trim();
+            const termsChecked = termsCheckbox.checked;
 
-        console.log('Register Form Validation:', {
-            isEmailValid,
-            isPasswordValid,
-            isSolanaWalletValid,
-            isTwitterValid,
-            isTermsValid
-        });
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const isEmailValid = emailRegex.test(email);
+            const isPasswordValid = password.length >= 8;
+            const isSolanaWalletValid = solanaWallet.length >= 32;
+            const isTwitterValid = twitter.length > 0;
 
-        const allValid = isEmailValid && isPasswordValid && isSolanaWalletValid && isTwitterValid && isTermsValid;
-        if (allValid) {
-            joinButton.disabled = false;
-            joinButton.classList.remove('disabled');
-            console.log('Join Now button enabled');
-        } else {
-            joinButton.disabled = true;
-            joinButton.classList.add('disabled');
-            console.log('Join Now button disabled');
-        }
-    };
+            console.log('Register Form Validation:', {
+                email,
+                isEmailValid,
+                password,
+                isPasswordValid,
+                solanaWallet,
+                isSolanaWalletValid,
+                twitter,
+                isTwitterValid,
+                termsChecked
+            });
 
-    // Function to show error message for the focused input
-    const showErrorForInput = (inputId) => {
-        errorMessage.textContent = '';
-        if (inputId === 'email' && !validationRules.email.test(emailInput.value)) {
-            errorMessage.textContent = validationRules.email.message;
-        } else if (inputId === 'password' && !validationRules.password.test(passwordInput.value)) {
-            errorMessage.textContent = validationRules.password.message;
-        } else if (inputId === 'solanaWallet' && !validationRules.solanaWallet.test(solanaWalletInput.value)) {
-            errorMessage.textContent = validationRules.solanaWallet.message;
-        } else if (inputId === 'twitter' && !validationRules.twitter.test(twitterInput.value)) {
-            errorMessage.textContent = validationRules.twitter.message;
-        } else if (inputId === 'termsCheckbox' && !validationRules.terms.test()) {
-            errorMessage.textContent = validationRules.terms.message;
-        }
-    };
+            // Check if all fields are valid to enable the button
+            const isFormValid = isEmailValid && isPasswordValid && isSolanaWalletValid && isTwitterValid && termsChecked;
 
-    // Add event listeners for input and focus
-    [emailInput, passwordInput, solanaWalletInput, twitterInput].forEach(input => {
-        input.addEventListener('input', () => {
-            validateForm();
-            // Only show error if the input is currently focused
-            if (document.activeElement === input) {
-                showErrorForInput(input.id);
+            if (!isFormValid) {
+                joinButton.disabled = true;
+                joinButton.classList.add('disabled');
+                console.log('Join Now button disabled');
+            } else {
+                errorMessage.textContent = ''; // Clear any error message when form is valid
+                joinButton.disabled = false;
+                joinButton.classList.remove('disabled');
+                console.log('Join Now button enabled');
             }
-        });
-        input.addEventListener('focus', () => {
-            showErrorForInput(input.id);
-        });
-        input.addEventListener('blur', () => {
-            // Clear error message when leaving the input
-            errorMessage.textContent = '';
-        });
-    });
 
-    termsCheckbox.addEventListener('change', () => {
-        validateForm();
-        if (document.activeElement === termsCheckbox || !termsCheckbox.checked) {
-            showErrorForInput('termsCheckbox');
-        }
-    });
-    termsCheckbox.addEventListener('focus', () => {
-        showErrorForInput('termsCheckbox');
-    });
-    termsCheckbox.addEventListener('blur', () => {
-        errorMessage.textContent = '';
-    });
-
-    // Initial validation
-    validateForm();
-
-    registerForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        console.log('Register form submitted');
-
-        const email = emailInput.value.trim();
-        const password = passwordInput.value.trim();
-        const solanaWallet = solanaWalletInput.value.trim();
-        const twitter = twitterInput.value.trim();
-        const inviteCode = inviteCodeInput.value.trim();
-
-        const users = await getUsers();
-        if (users.some(user => user.email === email)) {
-            alert('Email already registered. Please log in.');
-            window.location.href = 'login.html';
-            return;
-        }
-
-        const referralCode = generateReferralCode();
-        const referralLink = `https://ignite-xyz.vercel.app/ref/${referralCode}`;
-
-        const newUser = {
-            email,
-            password,
-            solana_wallet: solanaWallet,
-            twitter,
-            referral_code: referralCode,
-            referral_link: referralLink,
-            points: 0,
-            referrals: 0,
-            created_at: firebase.firestore.FieldValue.serverTimestamp()
+            return { isEmailValid, isPasswordValid, isSolanaWalletValid, isTwitterValid, termsChecked };
         };
 
-        try {
-            await db.collection('users').add(newUser);
-            if (inviteCode) {
-                const referrer = users.find(user => user.referral_code === inviteCode);
-                if (referrer) {
-                    const updatedReferrer = {
-                        ...referrer,
-                        referrals: (referrer.referrals || 0) + 1,
-                        points: (referrer.points || 0) + 10
-                    };
-                    await updateUser(updatedReferrer);
-                }
+        // Show error message for the focused input only
+        const showErrorForInput = (input, message) => {
+            if (document.activeElement === input && message) {
+                errorMessage.textContent = message;
             }
-            sessionStorage.setItem('currentUserEmail', email);
-            window.location.href = 'profile.html';
-        } catch (error) {
-            console.error('Error registering user:', error.message);
-            alert('Registration failed: ' + error.message);
-        }
-    });
-} else {
-    console.log('Register form not found on this page');
-}
+        };
+
+        // Clear error message when input is no longer focused or when it's valid
+        const clearErrorOnBlur = () => {
+            errorMessage.textContent = '';
+        };
+
+        emailInput.addEventListener('input', () => {
+            const { isEmailValid } = validateForm();
+            if (!isEmailValid && document.activeElement === emailInput) {
+                showErrorForInput(emailInput, 'Please enter a valid email.');
+            } else if (isEmailValid && document.activeElement === emailInput) {
+                errorMessage.textContent = '';
+            }
+        });
+
+        passwordInput.addEventListener('input', () => {
+            const { isPasswordValid } = validateForm();
+            if (!isPasswordValid && document.activeElement === passwordInput) {
+                showErrorForInput(passwordInput, 'Password must be at least 8 characters.');
+            } else if (isPasswordValid && document.activeElement === passwordInput) {
+                errorMessage.textContent = '';
+            }
+        });
+
+        solanaWalletInput.addEventListener('input', () => {
+            const { isSolanaWalletValid } = validateForm();
+            if (!isSolanaWalletValid && document.activeElement === solanaWalletInput) {
+                showErrorForInput(solanaWalletInput, 'Solana wallet address must be at least 32 characters.');
+            } else if (isSolanaWalletValid && document.activeElement === solanaWalletInput) {
+                errorMessage.textContent = '';
+            }
+        });
+
+        twitterInput.addEventListener('input', () => {
+            const { isTwitterValid } = validateForm();
+            if (!isTwitterValid && document.activeElement === twitterInput) {
+                showErrorForInput(twitterInput, 'Twitter handle is required.');
+            } else if (isTwitterValid && document.activeElement === twitterInput) {
+                errorMessage.textContent = '';
+            }
+        });
+
+        termsCheckbox.addEventListener('change', () => {
+            const { termsChecked } = validateForm();
+            if (!termsChecked && document.activeElement === termsCheckbox) {
+                showErrorForInput(termsCheckbox, 'You must agree to the terms.');
+            } else if (termsChecked && document.activeElement === termsCheckbox) {
+                errorMessage.textContent = '';
+            }
+        });
+
+        // Add focus event listeners to show errors only when the input is focused
+        emailInput.addEventListener('focus', () => {
+            const { isEmailValid } = validateForm();
+            showErrorForInput(emailInput, isEmailValid ? '' : 'Please enter a valid email.');
+        });
+
+        passwordInput.addEventListener('focus', () => {
+            const { isPasswordValid } = validateForm();
+            showErrorForInput(passwordInput, isPasswordValid ? '' : 'Password must be at least 8 characters.');
+        });
+
+        solanaWalletInput.addEventListener('focus', () => {
+            const { isSolanaWalletValid } = validateForm();
+            showErrorForInput(solanaWalletInput, isSolanaWalletValid ? '' : 'Solana wallet address must be at least 32 characters.');
+        });
+
+        twitterInput.addEventListener('focus', () => {
+            const { isTwitterValid } = validateForm();
+            showErrorForInput(twitterInput, isTwitterValid ? '' : 'Twitter handle is required.');
+        });
+
+        termsCheckbox.addEventListener('focus', () => {
+            const { termsChecked } = validateForm();
+            showErrorForInput(termsCheckbox, termsChecked ? '' : 'You must agree to the terms.');
+        });
+
+        // Clear error messages on blur
+        emailInput.addEventListener('blur', clearErrorOnBlur);
+        passwordInput.addEventListener('blur', clearErrorOnBlur);
+        solanaWalletInput.addEventListener('blur', clearErrorOnBlur);
+        twitterInput.addEventListener('blur', clearErrorOnBlur);
+        termsCheckbox.addEventListener('blur', clearErrorOnBlur);
+
+        validateForm();
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log('Register form submitted');
+
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            const solanaWallet = solanaWalletInput.value.trim();
+            const twitter = twitterInput.value.trim();
+            const inviteCode = inviteCodeInput.value.trim();
+
+            const users = await getUsers();
+            if (users.some(user => user.email === email)) {
+                alert('Email already registered. Please log in.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const referralCode = generateReferralCode();
+            const referralLink = `https://ignite-xyz.vercel.app/ref/${referralCode}`;
+
+            const newUser = {
+                email,
+                password,
+                solana_wallet: solanaWallet,
+                twitter,
+                referral_code: referralCode,
+                referral_link: referralLink,
+                points: 0,
+                referrals: 0,
+                created_at: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                await db.collection('users').add(newUser);
+                if (inviteCode) {
+                    const referrer = users.find(user => user.referral_code === inviteCode);
+                    if (referrer) {
+                        const updatedReferrer = {
+                            ...referrer,
+                            referrals: (referrer.referrals || 0) + 1,
+                            points: (referrer.points || 0) + 10
+                        };
+                        await updateUser(updatedReferrer);
+                    }
+                }
+                sessionStorage.setItem('currentUserEmail', email);
+                window.location.href = 'profile.html';
+            } catch (error) {
+                console.error('Error registering user:', error.message);
+                alert('Registration failed: ' + error.message);
+            }
+        });
+    } else {
+        console.log('Register form not found on this page');
+    }
 
     // Login Page Logic
     const loginForm = document.getElementById('loginForm');
@@ -295,12 +326,9 @@ if (registerForm) {
                 isPasswordValid
             });
 
-            let errorMessages = [];
-            if (!isEmailValid) errorMessages.push('Please enter a valid email.');
-            if (!isPasswordValid) errorMessages.push('Password must be at least 8 characters.');
+            const isFormValid = isEmailValid && isPasswordValid;
 
-            if (errorMessages.length > 0) {
-                errorMessage.textContent = errorMessages.join(' ');
+            if (!isFormValid) {
                 loginButton.disabled = true;
                 loginButton.classList.add('disabled');
                 console.log('Login button disabled');
@@ -310,10 +338,52 @@ if (registerForm) {
                 loginButton.classList.remove('disabled');
                 console.log('Login button enabled');
             }
+
+            return { isEmailValid, isPasswordValid };
         };
 
-        loginEmailInput.addEventListener('input', validateLoginForm);
-        loginPasswordInput.addEventListener('input', validateLoginForm);
+        // Show error message for the focused input only
+        const showErrorForInput = (input, message) => {
+            if (document.activeElement === input && message) {
+                errorMessage.textContent = message;
+            }
+        };
+
+        // Clear error message when input is no longer focused or when it's valid
+        const clearErrorOnBlur = () => {
+            errorMessage.textContent = '';
+        };
+
+        loginEmailInput.addEventListener('input', () => {
+            const { isEmailValid } = validateLoginForm();
+            if (!isEmailValid && document.activeElement === loginEmailInput) {
+                showErrorForInput(loginEmailInput, 'Please enter a valid email.');
+            } else if (isEmailValid && document.activeElement === loginEmailInput) {
+                errorMessage.textContent = '';
+            }
+        });
+
+        loginPasswordInput.addEventListener('input', () => {
+            const { isPasswordValid } = validateLoginForm();
+            if (!isPasswordValid && document.activeElement === loginPasswordInput) {
+                showErrorForInput(loginPasswordInput, 'Password must be at least 8 characters.');
+            } else if (isPasswordValid && document.activeElement === loginPasswordInput) {
+                errorMessage.textContent = '';
+            }
+        });
+
+        loginEmailInput.addEventListener('focus', () => {
+            const { isEmailValid } = validateLoginForm();
+            showErrorForInput(loginEmailInput, isEmailValid ? '' : 'Please enter a valid email.');
+        });
+
+        loginPasswordInput.addEventListener('focus', () => {
+            const { isPasswordValid } = validateLoginForm();
+            showErrorForInput(loginPasswordInput, isPasswordValid ? '' : 'Password must be at least 8 characters.');
+        });
+
+        loginEmailInput.addEventListener('blur', clearErrorOnBlur);
+        loginPasswordInput.addEventListener('blur', clearErrorOnBlur);
 
         validateLoginForm();
 
