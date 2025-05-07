@@ -22,7 +22,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Initialize Supabase client
-    // Use `createClient` directly as provided by the Supabase CDN
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     console.log('Supabase client initialized');
 
@@ -44,28 +43,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Helper function to get all users from Supabase
     const getUsers = async () => {
-        const { data, error } = await supabase
-            .from('users')
-            .select('*');
-        if (error) {
-            console.error('Error fetching users:', error);
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .select('*');
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching users:', error.message);
             return [];
         }
-        return data || [];
     };
 
     // Helper function to get a user by email from Supabase
     const getUserByEmail = async (email) => {
-        const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('email', email)
-            .single();
-        if (error) {
-            console.error('Error fetching user:', error);
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('email', email)
+                .single();
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error fetching user by email:', error.message);
             return null;
         }
-        return data;
     };
 
     // Helper function to get the current user (based on sessionStorage)
@@ -77,24 +80,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Helper function to update user data in Supabase
     const updateUser = async (updatedUser) => {
-        const { error } = await supabase
-            .from('users')
-            .update({
-                points: updatedUser.points,
-                referrals: updatedUser.referrals
-            })
-            .eq('email', updatedUser.email);
-        if (error) {
-            console.error('Error updating user:', error);
+        try {
+            const { error } = await supabase
+                .from('users')
+                .update({
+                    points: updatedUser.points,
+                    referrals: updatedUser.referrals
+                })
+                .eq('email', updatedUser.email);
+            if (error) throw error;
+            return true;
+        } catch (error) {
+            console.error('Error updating user:', error.message);
             return false;
         }
-        return true;
     };
 
     // Function to calculate position based on points
     const calculatePosition = async (currentUser) => {
         const users = await getUsers();
-        if (users.length === 0) return 1; // Default to #1 if no users
+        if (users.length === 0 || !currentUser) return 1; // Default to #1 if no users
         const sortedUsers = [...users].sort((a, b) => (b.points || 0) - (a.points || 0));
         return sortedUsers.findIndex(user => user.email === currentUser.email) + 1;
     };
@@ -116,7 +121,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         errorMessage.style.marginTop = '10px';
         registerForm.appendChild(errorMessage);
 
-        // Validate that all elements exist
         if (!emailInput || !passwordInput || !solanaWalletInput || !twitterInput || !inviteCodeInput || !termsCheckbox || !joinButton) {
             console.error('Register form elements missing. Found:', {
                 emailInput: !!emailInput,
@@ -156,7 +160,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 termsChecked
             });
 
-            // Display error messages for failed validations
             let errorMessages = [];
             if (!isEmailValid) errorMessages.push('Please enter a valid email.');
             if (!isPasswordValid) errorMessages.push('Password must be at least 8 characters.');
@@ -177,7 +180,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         };
 
-        // Attach event listeners with logging
         emailInput.addEventListener('input', () => {
             console.log('Email input event fired:', emailInput.value);
             validateForm();
@@ -199,7 +201,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             validateForm();
         });
 
-        // Initial validation
         console.log('Running initial validation for register form');
         validateForm();
 
@@ -234,12 +235,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 referrals: 0
             };
 
-            const { error: insertError } = await supabase
-                .from('users')
-                .insert(newUser);
-            if (insertError) {
-                console.error('Error registering user:', insertError);
-                alert('Registration failed. Please try again.');
+            try {
+                const { error: insertError } = await supabase
+                    .from('users')
+                    .insert(newUser);
+                if (insertError) throw insertError;
+                console.log('User registered successfully:', email);
+            } catch (error) {
+                console.error('Error registering user:', error.message);
+                alert('Registration failed: ' + error.message);
                 return;
             }
 
@@ -269,7 +273,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const loginEmailInput = document.getElementById('loginEmail');
         const loginPasswordInput = document.getElementById('loginPassword');
         const loginButton = document.getElementById('loginButton');
-        const errorMessage = document.createElement('div'); // Add error message element
+        const errorMessage = document.createElement('div');
         errorMessage.style.color = 'red';
         errorMessage.style.fontSize = '12px';
         errorMessage.style.marginTop = '10px';
@@ -402,20 +406,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                     continue;
                 }
 
-                const { data: taskData, error: taskError } = await supabase
-                    .from('tasks')
-                    .select('completed, claimed')
-                    .eq('user_email', currentUser.email)
-                    .eq('task_key', task.key)
-                    .single();
-
-                if (taskError && taskError.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
-                    console.error(`Error fetching task ${task.key}:`, taskError);
-                    continue;
+                let taskCompleted = false;
+                let taskClaimed = false;
+                try {
+                    const { data: taskData, error: taskError } = await supabase
+                        .from('tasks')
+                        .select('completed, claimed')
+                        .eq('user_email', currentUser.email)
+                        .eq('task_key', task.key)
+                        .single();
+                    if (taskError && taskError.code !== 'PGRST116') {
+                        throw taskError;
+                    }
+                    taskCompleted = taskData?.completed || false;
+                    taskClaimed = taskData?.claimed || false;
+                } catch (error) {
+                    console.error(`Error fetching task ${task.key}:`, error.message);
                 }
-
-                let taskCompleted = taskData?.completed || false;
-                let taskClaimed = taskData?.claimed || false;
 
                 if (taskClaimed) {
                     claimButton.textContent = 'Claimed';
@@ -430,22 +437,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 taskButton.addEventListener('click', async () => {
                     console.log(`Task button clicked: ${task.taskId}`);
-                    const { error: upsertError } = await supabase
-                        .from('tasks')
-                        .upsert(
-                            { user_email: currentUser.email, task_key: task.key, completed: true, claimed: false },
-                            { onConflict: ['user_email', 'task_key'] }
-                        );
-                    if (upsertError) {
-                        console.error('Error marking task as completed:', upsertError);
-                        alert('Failed to mark task as completed. Please try again.');
-                        return;
+                    try {
+                        const { error: upsertError } = await supabase
+                            .from('tasks')
+                            .upsert(
+                                { user_email: currentUser.email, task_key: task.key, completed: true, claimed: false },
+                                { onConflict: ['user_email', 'task_key'] }
+                            );
+                        if (upsertError) throw upsertError;
+                        taskCompleted = true;
+                        claimButton.classList.remove('disabled');
+                        claimButton.disabled = false;
+                        console.log(`Claim button enabled: ${task.claimId}`);
+                    } catch (error) {
+                        console.error('Error marking task as completed:', error.message);
+                        alert('Failed to mark task as completed: ' + error.message);
                     }
-
-                    taskCompleted = true;
-                    claimButton.classList.remove('disabled');
-                    claimButton.disabled = false;
-                    console.log(`Claim button enabled: ${task.claimId}`);
                 });
 
                 claimButton.addEventListener('click', async () => {
@@ -458,28 +465,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                             return;
                         }
 
-                        const { error: claimError } = await supabase
-                            .from('tasks')
-                            .upsert(
-                                { user_email: currentUser.email, task_key: task.key, completed: true, claimed: true },
-                                { onConflict: ['user_email', 'task_key'] }
-                            );
-                        if (claimError) {
-                            console.error('Error marking task as claimed:', claimError);
-                            alert('Failed to claim task. Please try again.');
-                            return;
+                        try {
+                            const { error: claimError } = await supabase
+                                .from('tasks')
+                                .upsert(
+                                    { user_email: currentUser.email, task_key: task.key, completed: true, claimed: true },
+                                    { onConflict: ['user_email', 'task_key'] }
+                                );
+                            if (claimError) throw claimError;
+                            taskClaimed = true;
+                            currentUser.points = newPoints;
+                            displayPoints.textContent = currentUser.points;
+                            displayPosition.textContent = `#${await calculatePosition(currentUser)}`;
+                            claimButton.textContent = 'Claimed';
+                            claimButton.classList.add('disabled');
+                            claimButton.disabled = true;
+                            console.log('Claim button marked as Claimed');
+                        } catch (error) {
+                            console.error('Error marking task as claimed:', error.message);
+                            alert('Failed to claim task: ' + error.message);
                         }
-
-                        taskClaimed = true;
-                        currentUser.points = newPoints;
-
-                        displayPoints.textContent = currentUser.points;
-                        displayPosition.textContent = `#${await calculatePosition(currentUser)}`;
-
-                        claimButton.textContent = 'Claimed';
-                        claimButton.classList.add('disabled');
-                        claimButton.disabled = true;
-                        console.log('Claim button marked as Claimed');
                     }
                 });
             }
