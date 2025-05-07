@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOGIN</title>
+    <link rel="stylesheet" href="styles.css">
+<!-- Add Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+</head>
+<header>
+    <div class="email2">
+        Unregistered?
+        <a href="index.html"><button class="btn6" type="submit">Join now</button></a>
+    </div>
+</header>
+<body>
+    <div class="container">
+        <div class="img">
+            <h1 class="head">IGNITE</h1>
+            <h2 class="tail">Light your Spark</h2>
+        </div>
+        <div class="top">
+            <h1>Login to check your Position</h1>
+        </div>
+        <form id="loginForm">
+            <div class="input-group">
+                <input type="email" id="loginEmail" placeholder="Enter your email" required>
+            </div>
+            <div class="input-group">
+                <input type="password" id="loginPassword" placeholder="Enter your password" required>
+            </div>
+            <button class="btn disabled" type="submit" id="loginButton" disabled>Login</button>
+        </form>
+        <div class="l-leg">
+            <div>© 2025 IGNITE. All rights reserved.</div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

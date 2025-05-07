@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REGISTER</title>
+    <link rel="stylesheet" href="styles.css">
+<!-- Add Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+</head>
+<header>
+    <div class="email2">
+        Already in?
+        <a href="login.html"><button class="btn6" type="submit">Login</button></a>
+    </div>
+</header>
+<body>
+    <div class="container">
+        <div class="img">
+            <h1 class="head">IGNITE</h1>
+            <h2 class="tail">Light your Spark</h2>
+        </div>
+        <div class="top3">
+            <h1>Join Ignite Wait-list and get early <br>access! FCFS</h1>
+        </div>
+        <form id="registerForm">
+            <div class="input-group">
+                <input type="email" id="email" placeholder="Enter your email" required>
+            </div>
+            <div class="input-group">
+                <input type="password" id="password" placeholder="Enter password (8 chars)" required>
+            </div>
+            <div class="input-group">
+                <input type="text" id="solanaWallet" placeholder="Enter your Solana address" required>
+            </div>
+            <div class="input-group">
+                <input type="text" id="twitter" placeholder="Enter your twitter @username" required>
+            </div>
+            <div class="input-group">
+                <input type="text" id="inviteCode" placeholder="Enter invite code (optional)">
+            </div>
+            <button class="btn disabled" type="submit" id="joinButton" disabled>Join now</button>
+        </form>
+        <div class="down">
+            <label class="checkbox-label">
+                <input type="checkbox" id="termsCheckbox">
+                <span class="checkmark"></span>
+                I agree to <a href="https://zootools.co/legal/tos">terms of service</a> & <a href="https://zootools.co/legal/tos">privacy policy</a>.
+            </label>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
