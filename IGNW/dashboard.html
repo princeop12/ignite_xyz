@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DASHBOARD</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<header>
+    <div class="email">
+        <span class="em" id="displayEmail"></span>
+        <button class="btn6 logoutButton" type="button">Logout</button>
+    </div>
+</header>
+<body>
+    <div class="container">
+        <div class="img">
+            <h1 class="head">IGNITE</h1>
+            <h2 class="tail">Light your Spark</h2>
+        </div>
+        <div class="top">
+            <img src="dashboard.png">
+            <h1>Dashboard</h1>
+        </div>
+        <div class="general">
+            <div class="details">
+                <div class="icon">
+                    <img src="trophy.svg" alt="Position Icon" width="20" height="20">
+                </div>
+                <div class="icon-name">Position:</div>
+                <div class="info" id="displayPosition">#108301</div>
+            </div>
+            <div class="details">
+                <div class="icon">
+                    <img src="star.svg" alt="Points Icon" width="20" height="20">
+                </div>
+                <div class="icon-name">Points:</div>
+                <div class="info" id="displayPoints">30</div>
+            </div>
+            <div class="details">
+                <div class="icon">
+                    <img src="person.svg" alt="Referrals Icon" width="20" height="20">
+                </div>
+                <div class="icon-name">Referrals:</div>
+                <div class="info" id="displayReferrals">0</div>
+            </div>  
+        </div>
+        <div class="py">+10 points per task</div>
+        <div class="socials">
+            <a href="https://x.com/ignite_xyz?t=Tx8NdlTnt3-nCJsPeWY60A&s=09"><button class="btn5" type="button" id="twitterTask"><img src="Xlogo.jpg"> Follow Twitter</button></a>
+            <button class="btn4 claimButton" type="button" id="twitterClaim" disabled>Claim</button>
+            <a href="https://t.me/ignite_xyz"><button class="btn5" type="button" id="telegramTask"><img src="tele.png"> Join Telegram</button></a>
+            <button class="btn4 claimButton" type="button" id="telegramClaim" disabled>Claim</button>
+            <a href="https://t.me/ignite_waitlist"><button class="btn5" type="button" id="telegram2Task"><img src="tele.png"> Join WL Telegram</button></a>
+            <button class="btn4 claimButton" type="button" id="telegram2Claim" disabled>Claim</button>
+            <a href="https://discord.gg/fScx5DVW"><button class="btn5" type="button" id="discordTask"><img src="discord.png"> Join Discord</button></a>
+            <button class="btn4 claimButton" type="button" id="discordClaim" disabled>Claim</button>
+        </div>   
+        <div class="contain">
+            <div class="label3">Referral Link:</div>
+            <div class="py">+10 points per invite</div>
+            <div class="rf">
+                <p class="display3"> <span id="displayReferralCode"></span></p>
+                <button class="btn3" type="button" id="copyReferralButton">Copy</button>
+            </div>
+        </div>
+        <div class="d-leg">
+            <div>© 2025 IGNITE. All rights reserved.</div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
