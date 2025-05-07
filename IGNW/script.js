@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Initialize Supabase client
-    const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Use `createClient` directly as provided by the Supabase CDN
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     console.log('Supabase client initialized');
 
     // Function to generate an 8-character alphanumeric referral code
@@ -109,6 +110,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const inviteCodeInput = document.getElementById('inviteCode');
         const termsCheckbox = document.getElementById('termsCheckbox');
         const joinButton = document.getElementById('joinButton');
+        const errorMessage = document.createElement('div'); // Add error message element
+        errorMessage.style.color = 'red';
+        errorMessage.style.fontSize = '12px';
+        errorMessage.style.marginTop = '10px';
+        registerForm.appendChild(errorMessage);
 
         // Validate that all elements exist
         if (!emailInput || !passwordInput || !solanaWalletInput || !twitterInput || !inviteCodeInput || !termsCheckbox || !joinButton) {
@@ -150,14 +156,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 termsChecked
             });
 
-            if (isEmailValid && isPasswordValid && isSolanaWalletValid && isTwitterValid && termsChecked) {
-                joinButton.disabled = false;
-                joinButton.classList.remove('disabled');
-                console.log('Join Now button enabled');
-            } else {
+            // Display error messages for failed validations
+            let errorMessages = [];
+            if (!isEmailValid) errorMessages.push('Please enter a valid email.');
+            if (!isPasswordValid) errorMessages.push('Password must be at least 8 characters.');
+            if (!isSolanaWalletValid) errorMessages.push('Solana wallet address must be at least 32 characters.');
+            if (!isTwitterValid) errorMessages.push('Twitter handle is required.');
+            if (!termsChecked) errorMessages.push('You must agree to the terms.');
+
+            if (errorMessages.length > 0) {
+                errorMessage.textContent = errorMessages.join(' ');
                 joinButton.disabled = true;
                 joinButton.classList.add('disabled');
                 console.log('Join Now button disabled');
+            } else {
+                errorMessage.textContent = '';
+                joinButton.disabled = false;
+                joinButton.classList.remove('disabled');
+                console.log('Join Now button enabled');
             }
         };
 
@@ -253,6 +269,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const loginEmailInput = document.getElementById('loginEmail');
         const loginPasswordInput = document.getElementById('loginPassword');
         const loginButton = document.getElementById('loginButton');
+        const errorMessage = document.createElement('div'); // Add error message element
+        errorMessage.style.color = 'red';
+        errorMessage.style.fontSize = '12px';
+        errorMessage.style.marginTop = '10px';
+        loginForm.appendChild(errorMessage);
 
         if (!loginEmailInput || !loginPasswordInput || !loginButton) {
             console.error('Login form elements missing. Found:', {
@@ -279,14 +300,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 isPasswordValid
             });
 
-            if (isEmailValid && isPasswordValid) {
-                loginButton.disabled = false;
-                loginButton.classList.remove('disabled');
-                console.log('Login button enabled');
-            } else {
+            let errorMessages = [];
+            if (!isEmailValid) errorMessages.push('Please enter a valid email.');
+            if (!isPasswordValid) errorMessages.push('Password must be at least 8 characters.');
+
+            if (errorMessages.length > 0) {
+                errorMessage.textContent = errorMessages.join(' ');
                 loginButton.disabled = true;
                 loginButton.classList.add('disabled');
                 console.log('Login button disabled');
+            } else {
+                errorMessage.textContent = '';
+                loginButton.disabled = false;
+                loginButton.classList.remove('disabled');
+                console.log('Login button enabled');
             }
         };
 
@@ -382,6 +409,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .eq('task_key', task.key)
                     .single();
 
+                if (taskError && taskError.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
+                    console.error(`Error fetching task ${task.key}:`, taskError);
+                    continue;
+                }
+
                 let taskCompleted = taskData?.completed || false;
                 let taskClaimed = taskData?.claimed || false;
 
@@ -401,11 +433,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const { error: upsertError } = await supabase
                         .from('tasks')
                         .upsert(
-                            { user_email: currentUser.email, task_key: task.key, completed: true },
+                            { user_email: currentUser.email, task_key: task.key, completed: true, claimed: false },
                             { onConflict: ['user_email', 'task_key'] }
                         );
                     if (upsertError) {
                         console.error('Error marking task as completed:', upsertError);
+                        alert('Failed to mark task as completed. Please try again.');
                         return;
                     }
 
@@ -433,6 +466,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             );
                         if (claimError) {
                             console.error('Error marking task as claimed:', claimError);
+                            alert('Failed to claim task. Please try again.');
                             return;
                         }
 
