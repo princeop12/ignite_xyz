@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOM fully loaded and script running');
+
     // Fetch Supabase credentials from API
     let SUPABASE_URL, SUPABASE_KEY;
     try {
@@ -12,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         SUPABASE_URL = config.SUPABASE_URL;
         SUPABASE_KEY = config.SUPABASE_KEY;
+        console.log('Supabase credentials fetched successfully');
     } catch (error) {
         console.error('Error fetching Supabase credentials:', error.message);
         alert('Failed to initialize the app. Please try again later. Check the console for details.');
@@ -20,6 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize Supabase client
     const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log('Supabase client initialized');
 
     // Function to generate an 8-character alphanumeric referral code
     const generateReferralCode = () => {
@@ -97,6 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Register Page Logic
     const registerForm = document.getElementById('registerForm');
     if (registerForm) {
+        console.log('Register form found');
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
         const solanaWalletInput = document.getElementById('solanaWallet');
@@ -118,6 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             return;
         }
+        console.log('All register form elements found');
 
         const validateForm = () => {
             const email = emailInput.value.trim();
@@ -129,7 +135,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             const isEmailValid = emailRegex.test(email);
             const isPasswordValid = password.length >= 8;
-            const isSolanaWalletValid = solanaWallet.length >= 32; // Adjusted to typical Solana address length
+            const isSolanaWalletValid = solanaWallet.length >= 32;
             const isTwitterValid = twitter.length > 0;
 
             console.log('Register Form Validation:', {
@@ -145,43 +151,45 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             if (isEmailValid && isPasswordValid && isSolanaWalletValid && isTwitterValid && termsChecked) {
+                joinButton.disabled = false;
                 joinButton.classList.remove('disabled');
-                joinButton.removeAttribute('disabled');
                 console.log('Join Now button enabled');
             } else {
+                joinButton.disabled = true;
                 joinButton.classList.add('disabled');
-                joinButton.setAttribute('disabled', 'true');
                 console.log('Join Now button disabled');
             }
         };
 
         // Attach event listeners with logging
         emailInput.addEventListener('input', () => {
-            console.log('Email input changed:', emailInput.value);
+            console.log('Email input event fired:', emailInput.value);
             validateForm();
         });
         passwordInput.addEventListener('input', () => {
-            console.log('Password input changed:', passwordInput.value);
+            console.log('Password input event fired:', passwordInput.value);
             validateForm();
         });
         solanaWalletInput.addEventListener('input', () => {
-            console.log('Solana Wallet input changed:', solanaWalletInput.value);
+            console.log('Solana Wallet input event fired:', solanaWalletInput.value);
             validateForm();
         });
         twitterInput.addEventListener('input', () => {
-            console.log('Twitter input changed:', twitterInput.value);
+            console.log('Twitter input event fired:', twitterInput.value);
             validateForm();
         });
         termsCheckbox.addEventListener('change', () => {
-            console.log('Terms checkbox changed:', termsCheckbox.checked);
+            console.log('Terms checkbox event fired:', termsCheckbox.checked);
             validateForm();
         });
 
         // Initial validation
+        console.log('Running initial validation for register form');
         validateForm();
 
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log('Register form submitted');
 
             const email = emailInput.value.trim();
             const password = passwordInput.value.trim();
@@ -234,11 +242,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             sessionStorage.setItem('currentUserEmail', email);
             window.location.href = 'profile.html';
         });
+    } else {
+        console.log('Register form not found on this page');
     }
 
     // Login Page Logic
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
+        console.log('Login form found');
         const loginEmailInput = document.getElementById('loginEmail');
         const loginPasswordInput = document.getElementById('loginPassword');
         const loginButton = document.getElementById('loginButton');
@@ -251,6 +262,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             return;
         }
+        console.log('All login form elements found');
 
         const validateLoginForm = () => {
             const email = loginEmailInput.value.trim();
@@ -268,29 +280,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             if (isEmailValid && isPasswordValid) {
+                loginButton.disabled = false;
                 loginButton.classList.remove('disabled');
-                loginButton.removeAttribute('disabled');
                 console.log('Login button enabled');
             } else {
+                loginButton.disabled = true;
                 loginButton.classList.add('disabled');
-                loginButton.setAttribute('disabled', 'true');
                 console.log('Login button disabled');
             }
         };
 
         loginEmailInput.addEventListener('input', () => {
-            console.log('Login email input changed:', loginEmailInput.value);
+            console.log('Login email input event fired:', loginEmailInput.value);
             validateLoginForm();
         });
         loginPasswordInput.addEventListener('input', () => {
-            console.log('Login password input changed:', loginPasswordInput.value);
+            console.log('Login password input event fired:', loginPasswordInput.value);
             validateLoginForm();
         });
 
+        console.log('Running initial validation for login form');
         validateLoginForm();
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log('Login form submitted');
 
             const email = loginEmailInput.value.trim();
             const password = loginPasswordInput.value.trim();
@@ -304,6 +318,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert('Invalid email or password.');
             }
         });
+    } else {
+        console.log('Login form not found on this page');
     }
 
     // Profile Page Logic
@@ -311,6 +327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const displaySolanaWallet = document.getElementById('displaySolanaWallet');
     const displayTwitter = document.getElementById('displayTwitter');
     if (displayEmail && displaySolanaWallet && displayTwitter) {
+        console.log('Profile page elements found');
         const currentUser = await getCurrentUser();
         if (currentUser) {
             displayEmail.textContent = currentUser.email || 'Not provided';
@@ -319,6 +336,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             window.location.href = 'login.html';
         }
+    } else {
+        console.log('Profile page elements not found');
     }
 
     // Dashboard Page Logic
@@ -327,6 +346,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const displayReferrals = document.getElementById('displayReferrals');
     const displayReferralCode = document.getElementById('displayReferralCode');
     if (displayEmail && displayPoints && displayPosition && displayReferrals && displayReferralCode) {
+        console.log('Dashboard page elements found');
         const currentUser = await getCurrentUser();
         if (currentUser) {
             displayEmail.textContent = currentUser.email || 'Not provided';
@@ -368,11 +388,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (taskClaimed) {
                     claimButton.textContent = 'Claimed';
                     claimButton.classList.add('disabled');
-                    claimButton.setAttribute('disabled', 'true');
+                    claimButton.disabled = true;
+                    console.log(`Claim button ${task.claimId} set to Claimed`);
                 } else if (taskCompleted) {
                     claimButton.classList.remove('disabled');
-                    claimButton.removeAttribute('disabled');
-                    console.log(`Claim button enabled: ${task.claimId}`);
+                    claimButton.disabled = false;
+                    console.log(`Claim button ${task.claimId} enabled`);
                 }
 
                 taskButton.addEventListener('click', async () => {
@@ -390,7 +411,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     taskCompleted = true;
                     claimButton.classList.remove('disabled');
-                    claimButton.removeAttribute('disabled');
+                    claimButton.disabled = false;
                     console.log(`Claim button enabled: ${task.claimId}`);
                 });
 
@@ -423,7 +444,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                         claimButton.textContent = 'Claimed';
                         claimButton.classList.add('disabled');
-                        claimButton.setAttribute('disabled', 'true');
+                        claimButton.disabled = true;
                         console.log('Claim button marked as Claimed');
                     }
                 });
@@ -432,6 +453,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const copyReferralButton = document.getElementById('copyReferralButton');
             if (copyReferralButton) {
                 copyReferralButton.addEventListener('click', () => {
+                    console.log('Copy referral button clicked');
                     navigator.clipboard.writeText(currentUser.referral_link || '')
                         .then(() => alert('Referral link copied to clipboard!'))
                         .catch(() => alert('Failed to copy referral link.'));
@@ -440,14 +462,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             window.location.href = 'login.html';
         }
+    } else {
+        console.log('Dashboard page elements not found');
     }
 
     // Logout Logic
     const logoutButton = document.querySelector('.logoutButton');
     if (logoutButton) {
+        console.log('Logout button found');
         logoutButton.addEventListener('click', () => {
+            console.log('Logout button clicked');
             sessionStorage.removeItem('currentUserEmail');
             window.location.href = 'login.html';
         });
+    } else {
+        console.log('Logout button not found');
     }
+
+    console.log('Script execution completed');
 });
