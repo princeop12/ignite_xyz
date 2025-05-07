@@ -607,20 +607,21 @@ input {
     display: block;
 }
 
-/* Disabled button styles (already present, ensuring it’s here for reference) */
+/* Disabled button styles */
 .btn.disabled,
 .btn2.disabled,
 .btn3.disabled,
 .btn4.disabled,
 .btn5.disabled,
 .btn6.disabled {
-    opacity: 0.3;
+    opacity: 0.5;
     cursor: not-allowed;
-    background-color: aqua;
-    border-color: aqua;
+    background-color: grey;
+    border-color: grey;
     color: white;
 }
 
+/* Remove hover effect for disabled buttons */
 .btn.disabled:hover,
 .btn2.disabled:hover,
 .btn3.disabled:hover,
