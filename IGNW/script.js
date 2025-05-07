@@ -1,6 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM fully loaded and script running');
 
+    // Fallback redirect for /ref/ URLs
+if (window.location.pathname.startsWith('/ref/')) {
+    const referralCode = window.location.pathname.split('/ref/')[1];
+    if (referralCode) {
+        window.location.replace(`/index.html?ref=${referralCode}`);
+    }
+}
+
     // Initialize Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyDG_GCVLfLYzIepcIi_BnuemIVfLccMPWg",
