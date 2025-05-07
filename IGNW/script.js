@@ -1,6 +1,14 @@
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('DOM fully loaded and script running');
 
+    // Debug: Check if createClient is available
+    console.log('Checking for createClient:', typeof createClient);
+    if (typeof createClient !== 'function') {
+        console.error('createClient is not defined. Ensure the Supabase library is loaded correctly.');
+        alert('Failed to load Supabase library. Please check the console for details.');
+        // Proceed with the rest of the script so buttons can still work
+    }
+
     // Fetch Supabase credentials from API
     let SUPABASE_URL, SUPABASE_KEY;
     try {
@@ -22,8 +30,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Initialize Supabase client
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-    console.log('Supabase client initialized');
+    let supabase;
+    try {
+        supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('Supabase client initialized');
+    } catch (error) {
+        console.error('Error initializing Supabase client:', error.message);
+        alert('Failed to initialize Supabase. Some features may not work. Check the console for details.');
+        supabase = null; // Allow the script to continue without Supabase
+    }
 
     // Function to generate an 8-character alphanumeric referral code
     const generateReferralCode = () => {
@@ -43,6 +58,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Helper function to get all users from Supabase
     const getUsers = async () => {
+        if (!supabase) {
+            console.warn('Supabase not initialized. Skipping user fetch.');
+            return [];
+        }
         try {
             const { data, error } = await supabase
                 .from('users')
@@ -57,6 +76,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Helper function to get a user by email from Supabase
     const getUserByEmail = async (email) => {
+        if (!supabase) {
+            console.warn('Supabase not initialized. Skipping user fetch.');
+            return null;
+        }
         try {
             const { data, error } = await supabase
                 .from('users')
@@ -80,6 +103,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Helper function to update user data in Supabase
     const updateUser = async (updatedUser) => {
+        if (!supabase) {
+            console.warn('Supabase not initialized. Skipping user update.');
+            return false;
+        }
         try {
             const { error } = await supabase
                 .from('users')
@@ -115,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const inviteCodeInput = document.getElementById('inviteCode');
         const termsCheckbox = document.getElementById('termsCheckbox');
         const joinButton = document.getElementById('joinButton');
-        const errorMessage = document.createElement('div'); // Add error message element
+        const errorMessage = document.createElement('div');
         errorMessage.style.color = 'red';
         errorMessage.style.fontSize = '12px';
         errorMessage.style.marginTop = '10px';
@@ -235,28 +262,34 @@ document.addEventListener('DOMContentLoaded', async () => {
                 referrals: 0
             };
 
-            try {
-                const { error: insertError } = await supabase
-                    .from('users')
-                    .insert(newUser);
-                if (insertError) throw insertError;
-                console.log('User registered successfully:', email);
-            } catch (error) {
-                console.error('Error registering user:', error.message);
-                alert('Registration failed: ' + error.message);
-                return;
-            }
-
-            if (inviteCode) {
-                const referrer = users.find(user => user.referral_code === inviteCode);
-                if (referrer) {
-                    const updatedReferrer = {
-                        ...referrer,
-                        referrals: (referrer.referrals || 0) + 1,
-                        points: (referrer.points || 0) + 10
-                    };
-                    await updateUser(updatedReferrer);
+            if (supabase) {
+                try {
+                    const { error: insertError } = await supabase
+                        .from('users')
+                        .insert(newUser);
+                    if (insertError) throw insertError;
+                    console.log('User registered successfully:', email);
+                } catch (error) {
+                    console.error('Error registering user:', error.message);
+                    alert('Registration failed: ' + error.message);
+                    return;
                 }
+
+                if (inviteCode) {
+                    const referrer = users.find(user => user.referral_code === inviteCode);
+                    if (referrer) {
+                        const updatedReferrer = {
+                            ...referrer,
+                            referrals: (referrer.referrals || 0) + 1,
+                            points: (referrer.points || 0) + 10
+                        };
+                        await updateUser(updatedReferrer);
+                    }
+                }
+            } else {
+                console.warn('Supabase not initialized. Storing user data locally for now.');
+                // Fallback: Store user data in sessionStorage (temporary)
+                sessionStorage.setItem(`user_${email}`, JSON.stringify(newUser));
             }
 
             sessionStorage.setItem('currentUserEmail', email);
@@ -340,7 +373,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const email = loginEmailInput.value.trim();
             const password = loginPasswordInput.value.trim();
 
-            const user = await getUserByEmail(email);
+            let user = null;
+            if (supabase) {
+                user = await getUserByEmail(email);
+            } else {
+                console.warn('Supabase not initialized. Checking local storage.');
+                const storedUser = sessionStorage.getItem(`user_${email}`);
+                user = storedUser ? JSON.parse(storedUser) : null;
+            }
 
             if (user && user.password === password) {
                 sessionStorage.setItem('currentUserEmail', email);
@@ -359,7 +399,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const displayTwitter = document.getElementById('displayTwitter');
     if (displayEmail && displaySolanaWallet && displayTwitter) {
         console.log('Profile page elements found');
-        const currentUser = await getCurrentUser();
+        let currentUser = await getCurrentUser();
+        if (!currentUser) {
+            console.warn('Supabase not initialized. Checking local storage.');
+            const email = sessionStorage.getItem('currentUserEmail');
+            const storedUser = email ? sessionStorage.getItem(`user_${email}`) : null;
+            currentUser = storedUser ? JSON.parse(storedUser) : null;
+        }
+
         if (currentUser) {
             displayEmail.textContent = currentUser.email || 'Not provided';
             displaySolanaWallet.textContent = formatSolanaWallet(currentUser.solana_wallet);
@@ -378,7 +425,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const displayReferralCode = document.getElementById('displayReferralCode');
     if (displayEmail && displayPoints && displayPosition && displayReferrals && displayReferralCode) {
         console.log('Dashboard page elements found');
-        const currentUser = await getCurrentUser();
+        let currentUser = await getCurrentUser();
+        if (!currentUser) {
+            console.warn('Supabase not initialized. Checking local storage.');
+            const email = sessionStorage.getItem('currentUserEmail');
+            const storedUser = email ? sessionStorage.getItem(`user_${email}`) : null;
+            currentUser = storedUser ? JSON.parse(storedUser) : null;
+        }
+
         if (currentUser) {
             displayEmail.textContent = currentUser.email || 'Not provided';
             const position = await calculatePosition(currentUser);
@@ -408,20 +462,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 let taskCompleted = false;
                 let taskClaimed = false;
-                try {
-                    const { data: taskData, error: taskError } = await supabase
-                        .from('tasks')
-                        .select('completed, claimed')
-                        .eq('user_email', currentUser.email)
-                        .eq('task_key', task.key)
-                        .single();
-                    if (taskError && taskError.code !== 'PGRST116') {
-                        throw taskError;
+                if (supabase) {
+                    try {
+                        const { data: taskData, error: taskError } = await supabase
+                            .from('tasks')
+                            .select('completed, claimed')
+                            .eq('user_email', currentUser.email)
+                            .eq('task_key', task.key)
+                            .single();
+                        if (taskError && taskError.code !== 'PGRST116') {
+                            throw taskError;
+                        }
+                        taskCompleted = taskData?.completed || false;
+                        taskClaimed = taskData?.claimed || false;
+                    } catch (error) {
+                        console.error(`Error fetching task ${task.key}:`, error.message);
                     }
-                    taskCompleted = taskData?.completed || false;
-                    taskClaimed = taskData?.claimed || false;
-                } catch (error) {
-                    console.error(`Error fetching task ${task.key}:`, error.message);
                 }
 
                 if (taskClaimed) {
@@ -437,21 +493,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 taskButton.addEventListener('click', async () => {
                     console.log(`Task button clicked: ${task.taskId}`);
-                    try {
-                        const { error: upsertError } = await supabase
-                            .from('tasks')
-                            .upsert(
-                                { user_email: currentUser.email, task_key: task.key, completed: true, claimed: false },
-                                { onConflict: ['user_email', 'task_key'] }
-                            );
-                        if (upsertError) throw upsertError;
+                    if (supabase) {
+                        try {
+                            const { error: upsertError } = await supabase
+                                .from('tasks')
+                                .upsert(
+                                    { user_email: currentUser.email, task_key: task.key, completed: true, claimed: false },
+                                    { onConflict: ['user_email', 'task_key'] }
+                                );
+                            if (upsertError) throw upsertError;
+                            taskCompleted = true;
+                            claimButton.classList.remove('disabled');
+                            claimButton.disabled = false;
+                            console.log(`Claim button enabled: ${task.claimId}`);
+                        } catch (error) {
+                            console.error('Error marking task as completed:', error.message);
+                            alert('Failed to mark task as completed: ' + error.message);
+                        }
+                    } else {
+                        console.warn('Supabase not initialized. Simulating task completion.');
                         taskCompleted = true;
                         claimButton.classList.remove('disabled');
                         claimButton.disabled = false;
                         console.log(`Claim button enabled: ${task.claimId}`);
-                    } catch (error) {
-                        console.error('Error marking task as completed:', error.message);
-                        alert('Failed to mark task as completed: ' + error.message);
                     }
                 });
 
@@ -459,32 +523,39 @@ document.addEventListener('DOMContentLoaded', async () => {
                     console.log(`Claim button clicked: ${task.claimId}`);
                     if (!taskClaimed) {
                         const newPoints = (currentUser.points || 0) + 10;
-                        const updateSuccess = await updateUser({ ...currentUser, points: newPoints });
-                        if (!updateSuccess) {
-                            alert('Failed to claim points. Please try again.');
-                            return;
+                        let updateSuccess = true;
+                        if (supabase) {
+                            updateSuccess = await updateUser({ ...currentUser, points: newPoints });
+                            if (!updateSuccess) {
+                                alert('Failed to claim points. Please try again.');
+                                return;
+                            }
+
+                            try {
+                                const { error: claimError } = await supabase
+                                    .from('tasks')
+                                    .upsert(
+                                        { user_email: currentUser.email, task_key: task.key, completed: true, claimed: true },
+                                        { onConflict: ['user_email', 'task_key'] }
+                                    );
+                                if (claimError) throw claimError;
+                            } catch (error) {
+                                console.error('Error marking task as claimed:', error.message);
+                                alert('Failed to claim task: ' + error.message);
+                                return;
+                            }
+                        } else {
+                            console.warn('Supabase not initialized. Updating points locally.');
                         }
 
-                        try {
-                            const { error: claimError } = await supabase
-                                .from('tasks')
-                                .upsert(
-                                    { user_email: currentUser.email, task_key: task.key, completed: true, claimed: true },
-                                    { onConflict: ['user_email', 'task_key'] }
-                                );
-                            if (claimError) throw claimError;
-                            taskClaimed = true;
-                            currentUser.points = newPoints;
-                            displayPoints.textContent = currentUser.points;
-                            displayPosition.textContent = `#${await calculatePosition(currentUser)}`;
-                            claimButton.textContent = 'Claimed';
-                            claimButton.classList.add('disabled');
-                            claimButton.disabled = true;
-                            console.log('Claim button marked as Claimed');
-                        } catch (error) {
-                            console.error('Error marking task as claimed:', error.message);
-                            alert('Failed to claim task: ' + error.message);
-                        }
+                        taskClaimed = true;
+                        currentUser.points = newPoints;
+                        displayPoints.textContent = currentUser.points;
+                        displayPosition.textContent = `#${await calculatePosition(currentUser)}`;
+                        claimButton.textContent = 'Claimed';
+                        claimButton.classList.add('disabled');
+                        claimButton.disabled = true;
+                        console.log('Claim button marked as Claimed');
                     }
                 });
             }
