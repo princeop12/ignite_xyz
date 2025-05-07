@@ -3,13 +3,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     let SUPABASE_URL, SUPABASE_KEY;
     try {
         const response = await fetch('/api/config');
-        if (!response.ok) throw new Error('Failed to fetch Supabase config');
+        if (!response.ok) {
+            throw new Error(`Failed to fetch Supabase config: ${response.status} ${response.statusText}`);
+        }
         const config = await response.json();
+        if (!config.SUPABASE_URL || !config.SUPABASE_KEY) {
+            throw new Error('Supabase config missing URL or KEY');
+        }
         SUPABASE_URL = config.SUPABASE_URL;
         SUPABASE_KEY = config.SUPABASE_KEY;
     } catch (error) {
-        console.error('Error fetching Supabase credentials:', error);
-        alert('Failed to initialize the app. Please try again later.');
+        console.error('Error fetching Supabase credentials:', error.message);
+        alert('Failed to initialize the app. Please try again later. Check the console for details.');
         return;
     }
 
@@ -85,9 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const calculatePosition = async (currentUser) => {
         const users = await getUsers();
         if (users.length === 0) return 1; // Default to #1 if no users
-        // Sort users by points (descending)
         const sortedUsers = [...users].sort((a, b) => (b.points || 0) - (a.points || 0));
-        // Find the index of the current user in the sorted array (position is index + 1)
         return sortedUsers.findIndex(user => user.email === currentUser.email) + 1;
     };
 
@@ -102,46 +105,90 @@ document.addEventListener('DOMContentLoaded', async () => {
         const termsCheckbox = document.getElementById('termsCheckbox');
         const joinButton = document.getElementById('joinButton');
 
+        // Validate that all elements exist
+        if (!emailInput || !passwordInput || !solanaWalletInput || !twitterInput || !inviteCodeInput || !termsCheckbox || !joinButton) {
+            console.error('Register form elements missing. Found:', {
+                emailInput: !!emailInput,
+                passwordInput: !!passwordInput,
+                solanaWalletInput: !!solanaWalletInput,
+                twitterInput: !!twitterInput,
+                inviteCodeInput: !!inviteCodeInput,
+                termsCheckbox: !!termsCheckbox,
+                joinButton: !!joinButton
+            });
+            return;
+        }
+
         const validateForm = () => {
-            const email = emailInput.value;
-            const password = passwordInput.value;
-            const solanaWallet = solanaWalletInput.value;
-            const twitter = twitterInput.value;
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            const solanaWallet = solanaWalletInput.value.trim();
+            const twitter = twitterInput.value.trim();
             const termsChecked = termsCheckbox.checked;
 
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             const isEmailValid = emailRegex.test(email);
             const isPasswordValid = password.length >= 8;
-            const isSolanaWalletValid = solanaWallet.length >= 37;
+            const isSolanaWalletValid = solanaWallet.length >= 32; // Adjusted to typical Solana address length
             const isTwitterValid = twitter.length > 0;
+
+            console.log('Register Form Validation:', {
+                email,
+                isEmailValid,
+                password,
+                isPasswordValid,
+                solanaWallet,
+                isSolanaWalletValid,
+                twitter,
+                isTwitterValid,
+                termsChecked
+            });
 
             if (isEmailValid && isPasswordValid && isSolanaWalletValid && isTwitterValid && termsChecked) {
                 joinButton.classList.remove('disabled');
                 joinButton.removeAttribute('disabled');
+                console.log('Join Now button enabled');
             } else {
                 joinButton.classList.add('disabled');
-                joinButton.setAttribute('disabled', 'disabled');
+                joinButton.setAttribute('disabled', 'true');
+                console.log('Join Now button disabled');
             }
         };
 
-        emailInput.addEventListener('input', validateForm);
-        passwordInput.addEventListener('input', validateForm);
-        solanaWalletInput.addEventListener('input', validateForm);
-        twitterInput.addEventListener('input', validateForm);
-        termsCheckbox.addEventListener('change', validateForm);
+        // Attach event listeners with logging
+        emailInput.addEventListener('input', () => {
+            console.log('Email input changed:', emailInput.value);
+            validateForm();
+        });
+        passwordInput.addEventListener('input', () => {
+            console.log('Password input changed:', passwordInput.value);
+            validateForm();
+        });
+        solanaWalletInput.addEventListener('input', () => {
+            console.log('Solana Wallet input changed:', solanaWalletInput.value);
+            validateForm();
+        });
+        twitterInput.addEventListener('input', () => {
+            console.log('Twitter input changed:', twitterInput.value);
+            validateForm();
+        });
+        termsCheckbox.addEventListener('change', () => {
+            console.log('Terms checkbox changed:', termsCheckbox.checked);
+            validateForm();
+        });
 
+        // Initial validation
         validateForm();
 
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const email = emailInput.value;
-            const password = passwordInput.value;
-            const solanaWallet = solanaWalletInput.value;
-            const twitter = twitterInput.value;
-            const inviteCode = inviteCodeInput.value;
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            const solanaWallet = solanaWalletInput.value.trim();
+            const twitter = twitterInput.value.trim();
+            const inviteCode = inviteCodeInput.value.trim();
 
-            // Check if email already exists
             const users = await getUsers();
             if (users.some(user => user.email === email)) {
                 alert('Email already registered. Please log in.');
@@ -152,7 +199,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const referralCode = generateReferralCode();
             const referralLink = `https://ignite-xyz.vercel.app/ref/${referralCode}`;
 
-            // Create new user
             const newUser = {
                 email,
                 password,
@@ -164,7 +210,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 referrals: 0
             };
 
-            // Insert new user into Supabase
             const { error: insertError } = await supabase
                 .from('users')
                 .insert(newUser);
@@ -174,7 +219,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Handle invite code (referral)
             if (inviteCode) {
                 const referrer = users.find(user => user.referral_code === inviteCode);
                 if (referrer) {
@@ -187,7 +231,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            // Set current user in sessionStorage
             sessionStorage.setItem('currentUserEmail', email);
             window.location.href = 'profile.html';
         });
@@ -200,33 +243,57 @@ document.addEventListener('DOMContentLoaded', async () => {
         const loginPasswordInput = document.getElementById('loginPassword');
         const loginButton = document.getElementById('loginButton');
 
+        if (!loginEmailInput || !loginPasswordInput || !loginButton) {
+            console.error('Login form elements missing. Found:', {
+                loginEmailInput: !!loginEmailInput,
+                loginPasswordInput: !!loginPasswordInput,
+                loginButton: !!loginButton
+            });
+            return;
+        }
+
         const validateLoginForm = () => {
-            const email = loginEmailInput.value;
-            const password = loginPasswordInput.value;
+            const email = loginEmailInput.value.trim();
+            const password = loginPasswordInput.value.trim();
 
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             const isEmailValid = emailRegex.test(email);
             const isPasswordValid = password.length >= 8;
 
+            console.log('Login Form Validation:', {
+                email,
+                isEmailValid,
+                password,
+                isPasswordValid
+            });
+
             if (isEmailValid && isPasswordValid) {
                 loginButton.classList.remove('disabled');
                 loginButton.removeAttribute('disabled');
+                console.log('Login button enabled');
             } else {
                 loginButton.classList.add('disabled');
-                loginButton.setAttribute('disabled', 'disabled');
+                loginButton.setAttribute('disabled', 'true');
+                console.log('Login button disabled');
             }
         };
 
-        loginEmailInput.addEventListener('input', validateLoginForm);
-        loginPasswordInput.addEventListener('input', validateLoginForm);
+        loginEmailInput.addEventListener('input', () => {
+            console.log('Login email input changed:', loginEmailInput.value);
+            validateLoginForm();
+        });
+        loginPasswordInput.addEventListener('input', () => {
+            console.log('Login password input changed:', loginPasswordInput.value);
+            validateLoginForm();
+        });
 
         validateLoginForm();
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const email = loginEmailInput.value;
-            const password = loginPasswordInput.value;
+            const email = loginEmailInput.value.trim();
+            const password = loginPasswordInput.value.trim();
 
             const user = await getUserByEmail(email);
 
@@ -262,21 +329,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (displayEmail && displayPoints && displayPosition && displayReferrals && displayReferralCode) {
         const currentUser = await getCurrentUser();
         if (currentUser) {
-            // Display email
             displayEmail.textContent = currentUser.email || 'Not provided';
-
-            // Calculate and display position
             const position = await calculatePosition(currentUser);
             displayPosition.textContent = `#${position}`;
-
-            // Display points and referrals
             displayPoints.textContent = currentUser.points || '0';
             displayReferrals.textContent = currentUser.referrals || '0';
-
-            // Display referral code
             displayReferralCode.textContent = currentUser.referral_link || 'Not provided';
 
-            // Task and Claim Logic
             const tasks = [
                 { taskId: 'twitterTask', claimId: 'twitterClaim', key: 'twitterTaskCompleted' },
                 { taskId: 'telegramTask', claimId: 'telegramClaim', key: 'telegramTaskCompleted' },
@@ -288,7 +347,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const taskButton = document.getElementById(task.taskId);
                 const claimButton = document.getElementById(task.claimId);
 
-                // Check task status from Supabase
+                if (!taskButton || !claimButton) {
+                    console.error(`Task/Claim buttons missing for ${task.key}. Found:`, {
+                        taskButton: !!taskButton,
+                        claimButton: !!claimButton
+                    });
+                    continue;
+                }
+
                 const { data: taskData, error: taskError } = await supabase
                     .from('tasks')
                     .select('completed, claimed')
@@ -299,20 +365,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let taskCompleted = taskData?.completed || false;
                 let taskClaimed = taskData?.claimed || false;
 
-                // If task is claimed, set button to "Claimed" and disable
                 if (taskClaimed) {
                     claimButton.textContent = 'Claimed';
                     claimButton.classList.add('disabled');
-                    claimButton.setAttribute('disabled', 'disabled');
+                    claimButton.setAttribute('disabled', 'true');
                 } else if (taskCompleted) {
-                    // If task is completed but not claimed, enable claim button
                     claimButton.classList.remove('disabled');
                     claimButton.removeAttribute('disabled');
+                    console.log(`Claim button enabled: ${task.claimId}`);
                 }
 
-                // Task button click handler
                 taskButton.addEventListener('click', async () => {
-                    // Mark task as completed in Supabase
+                    console.log(`Task button clicked: ${task.taskId}`);
                     const { error: upsertError } = await supabase
                         .from('tasks')
                         .upsert(
@@ -324,15 +388,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return;
                     }
 
-                    // Enable claim button
+                    taskCompleted = true;
                     claimButton.classList.remove('disabled');
                     claimButton.removeAttribute('disabled');
+                    console.log(`Claim button enabled: ${task.claimId}`);
                 });
 
-                // Claim button click handler
                 claimButton.addEventListener('click', async () => {
+                    console.log(`Claim button clicked: ${task.claimId}`);
                     if (!taskClaimed) {
-                        // Add 10 points
                         const newPoints = (currentUser.points || 0) + 10;
                         const updateSuccess = await updateUser({ ...currentUser, points: newPoints });
                         if (!updateSuccess) {
@@ -340,7 +404,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             return;
                         }
 
-                        // Mark task as claimed in Supabase
                         const { error: claimError } = await supabase
                             .from('tasks')
                             .upsert(
@@ -352,22 +415,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                             return;
                         }
 
-                        // Update current user
+                        taskClaimed = true;
                         currentUser.points = newPoints;
 
-                        // Update display
                         displayPoints.textContent = currentUser.points;
                         displayPosition.textContent = `#${await calculatePosition(currentUser)}`;
 
-                        // Update button state
                         claimButton.textContent = 'Claimed';
                         claimButton.classList.add('disabled');
-                        claimButton.setAttribute('disabled', 'disabled');
+                        claimButton.setAttribute('disabled', 'true');
+                        console.log('Claim button marked as Claimed');
                     }
                 });
             }
 
-            // Copy Referral Link
             const copyReferralButton = document.getElementById('copyReferralButton');
             if (copyReferralButton) {
                 copyReferralButton.addEventListener('click', () => {
