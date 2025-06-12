@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WAITLIST</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="/prof.png">
+    <!-- Add Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <canvas id="sparks-canvas"></canvas>
+    <div class="container">
+                    <div class="img">
+                        <h1 class="head">IGNITE</h1>
+                        <h1 class="tail">Light your Spark</h1>
+                    </div>
+                    <div class="top3">
+                        <h1>Join Ignite Wait-list and get early access! FCFS</h1>
+                    </div>
+                    <form id="registerForm">
+                        <label for="Email" class="stake">Enter your Email Address:</label>
+                        <div class="input-group">
+                            <input type="email" id="email" placeholder="test@gmail.com" required>
+                        </div>
+                        <label for="Wallet" class="stake">Input your Solana Address:</label>
+                        <div class="input-group">
+                            <input type="text" id="solanaWallet" placeholder="b9NA2q***h7Um7a" required>
+                        </div>
+                        <div class="down">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="termsCheckbox">
+                            <span class="checkmark"></span>
+                            I agree to <a href="https://zootools.co/legal/tos">terms of service</a> & <a href="https://zootools.co/legal/tos">privacy policy</a>.
+                        </label>
+                    </div>
+                        <button class="btn disabled" type="submit" id="joinButton" disabled>Join now</button>
+                    </form>
+                    
+                </div>
+        <script>
+        window.addEventListener('load', () => {
+            console.log('window.solanaWeb3 available:', !!window.solanaWeb3);
+        });
+    </script>
+    <script src="/lib/solana-web3.min.js"></script>
+    <script src="/script.js"></script>
+    <script src="/sparks.js"></script>
+</body>
+</html>
