@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WAITLIST</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="/prof.png">
+    <!-- Add Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <canvas id="sparks-canvas"></canvas>
+    <div class="container">
+                    <div class="img">
+                        <h1 class="head">IGNITE</h1>
+                        <h2 class="tail">Light your Spark</h2>
+                    </div>
+                    <div class="top3">
+                        <h1>Please provide the email address you used to register for the waitlist</h1>
+                    </div>
+                    <form id="registerForm">
+                        <label for="Email" class="stake">Enter your Registered Email:</label>
+                        <div class="input-group">
+                            <input type="email" id="email" placeholder="test@gmail.com" required>
+                        </div>
+                        <button class="btn disabled" type="submit" id="joinButton" disabled>Submit</button>
+                    </form>
+                    
+                </div>
+
+                <div class="container" style="display: none;">
+        <div class="img">
+            <h1 class="head">IGNITE</h1>
+            <h2 class="tail">Light your Spark</h2>
+        </div>
+        <div class="top2">
+            <img class="pimg" src="profile.jpg">
+            <h1>Profile</h1>
+        </div>
+        <div class="contain">
+            <div class="label2">Wallet:</div>
+            <div class="gum">
+                <p class="display"><img src="sol-logo.png"><span id="displaySolanaWallet"></span></p>
+            </div>
+        </div>        
+        <div class="contain">
+            <div class="label2">Email:</div>
+            <p class="display"> <span id="displayEmail"></span></p>
+        </div>
+        <div class="socials">
+          <div class="hgy">
+            <a href="https://x.com/ignite_xyz?t=Tx8NdlTnt3-nCJsPeWY60A&s=09"><button class="btn5" type="button" id="twitterTask"><img src="Xlogo.jpg"> Follow <br> Twitter</button></a>
+            <a href="https://t.me/ignite_xyz"><button class="btn5" type="button" id="telegramTask"><img src="tele.png"> Join <br> Telegram</button></a>
+          </div>
+          <div class="hgy">
+            <a href="https://t.me/ignite_waitlist"><button class="btn5" type="button" id="telegram2Task"><img src="tele.png"> Join WL <br> Telegram</button></a>
+            <a href="https://discord.gg/fScx5DVW"><button class="btn5" type="button" id="discordTask"><img src="discord.png"> Join <br> Discord</button></a>
+          </div>
+        </div>
+        <div class="contain">
+            <div class="label3">Referral Link:</div>
+            <div class="rf">
+                <p class="display3"> <span id="displayReferralCode"></span></p>
+                <button class="btn3" type="button" id="copyReferralButton">Copy</button>
+            </div>
+        </div>
+    </div>
+        <script>
+        window.addEventListener('load', () => {
+            console.log('window.solanaWeb3 available:', !!window.solanaWeb3);
+        });
+    </script>
+    <script src="/lib/solana-web3.min.js"></script>
+    <script src="/script.js"></script>
+    <script src="/sparks.js"></script>
+</body>
+</html>
