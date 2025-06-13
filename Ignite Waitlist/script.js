@@ -73,12 +73,67 @@ document.addEventListener('DOMContentLoaded', () => {
         if (targetSection) targetSection.style.display = 'block';
     };
 
-    const currentUserEmail = sessionStorage.getItem('currentUserEmail');
-    const container2 = document.querySelector('.container2');
-    if (container2) {
-        if (currentUserEmail) showContainer('profile-container');
-        else showContainer('register');
-    }
+    // New Feature: Check for registered user and show profile
+    const showProfileForRegisteredUser = async () => {
+        const registeredEmail = localStorage.getItem('registeredEmail');
+        const container2 = document.querySelector('.container2');
+        if (!container2) return;
+
+        if (registeredEmail) {
+            sessionStorage.setItem('currentWaitlistEmail', registeredEmail); // Sync with sessionStorage
+            const waitlist = await getWaitlist();
+            const entry = waitlist.find(e => e.email === registeredEmail);
+
+            if (entry) {
+                // Show profile container
+                showContainer('profile-container');
+
+                // Populate profile details
+                const spans = {
+                    displayEmail: document.getElementById('displayEmail'),
+                    displaySolanaWallet: document.getElementById('displaySolanaWallet'),
+                    displayReferralCode: document.getElementById('displayReferralCode'),
+                    userrefcount: document.getElementById('userrefcount')
+                };
+
+                if (spans.displayEmail) spans.displayEmail.textContent = entry.email || 'Not provided';
+                if (spans.displaySolanaWallet) spans.displaySolanaWallet.textContent = formatSolanaWallet(entry.solanaWallet);
+                if (spans.displayReferralCode) spans.displayReferralCode.textContent = entry.refLink || 'Not provided';
+                if (spans.userrefcount) spans.userrefcount.textContent = entry.referrals || '0';
+
+                // Setup copy referral button
+                const copyReferralButton = document.getElementById('copyReferralButton');
+                if (copyReferralButton) {
+                    copyReferralButton.addEventListener('click', () => {
+                        const refLink = spans.displayReferralCode?.textContent || '';
+                        if (refLink && refLink !== 'Not provided') {
+                            navigator.clipboard.writeText(refLink)
+                                .then(() => alert('Referral link copied!'))
+                                .catch(() => alert('Failed to copy link.'));
+                        } else {
+                            alert('No referral link available.');
+                        }
+                    });
+                }
+
+                // Hide registration container
+                const containers = document.querySelectorAll('.container');
+                if (containers.length >= 2) {
+                    containers[0].style.display = 'none';
+                    containers[1].style.display = 'block';
+                }
+            } else {
+                // If email not found in waitlist, clear localStorage and show registration
+                localStorage.removeItem('registeredEmail');
+                showContainer('register');
+            }
+        } else {
+            showContainer('register');
+        }
+    };
+
+    // Call the function to check for registered user on page load
+    showProfileForRegisteredUser();
 
     const urlParams = new URLSearchParams(window.location.search);
     const inviteCodeFromUrl = urlParams.get('ref');
@@ -145,11 +200,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const saveWaitlistEntry = async (entry) => {
         try {
+            if (!entry.email || typeof entry.email !== 'string' || entry.email.includes('/')) {
+                console.error('Invalid email for waitlist entry:', entry.email);
+                alert('Invalid email format.');
+                return false;
+            }
+            console.log('Attempting to save waitlist entry:', entry);
             await db.collection('waitlist').doc(entry.email).set(entry, { merge: true });
+            console.log('Waitlist entry saved successfully for:', entry.email);
             return true;
         } catch (error) {
-            console.error('Failed to save waitlist entry:', error);
-            alert('Failed to save waitlist.');
+            console.error('Failed to save waitlist entry:', {
+                errorMessage: error.message,
+                errorCode: error.code,
+                entry
+            });
+            alert(`Failed to save waitlist: ${error.message}`);
             return false;
         }
     };
@@ -223,6 +289,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Check if user is already registered
+        if (localStorage.getItem('registeredEmail')) {
+            // Disable the registration form
+            emailInput.disabled = true;
+            solanaWalletInput.disabled = true;
+            termsCheckbox.disabled = true;
+            joinButton.disabled = true;
+            joinButton.classList.add('disabled');
+            errorMessage.textContent = 'You are already registered. Please view your profile.';
+            return;
+        }
+
         const validationRules = {
             email: { test: (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()), message: 'Invalid email.' },
             solanaWallet: { test: (value) => value.trim().length >= 32, message: 'Invalid Solana wallet (32+ chars).' },
@@ -260,6 +338,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const email = emailInput.value.trim();
             const solanaWallet = solanaWalletInput.value.trim();
 
+            // Double-check localStorage
+            if (localStorage.getItem('registeredEmail')) {
+                alert('You are already registered on this device.');
+                return;
+            }
+
             const waitlist = await getWaitlist();
             if (waitlist.some(entry => entry.email === email)) {
                 alert('Email already registered.');
@@ -285,6 +369,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 await incrementReferrerCount(inviteCodeFromUrl);
             }
 
+            // Save to localStorage to persist registration
+            localStorage.setItem('registeredEmail', email);
             sessionStorage.setItem('currentWaitlistEmail', email);
 
             emailInput.value = '';
@@ -292,11 +378,15 @@ document.addEventListener('DOMContentLoaded', () => {
             termsCheckbox.checked = false;
             validateForm();
 
+            // Show profile immediately
+            await showProfileForRegisteredUser();
+
+            // Redirect to waitv.html
             window.location.href = 'waitv.html';
         });
     }
 
-    // New Email Check Form Logic
+    // New Email Check Form Logic (Disabled for Registered Users)
     const registerForm = document.getElementById('registerForm');
     if (registerForm && !registerForm.querySelector('#solanaWallet')) {
         const emailInput = document.getElementById('email');
@@ -307,6 +397,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!emailInput || !joinButton) {
             console.error('Email check form elements missing');
+            return;
+        }
+
+        // Check if user is already registered
+        if (localStorage.getItem('registeredEmail')) {
+            emailInput.disabled = true;
+            joinButton.disabled = true;
+            joinButton.classList.add('disabled');
+            errorMessage.textContent = 'You are already registered. Please view your profile.';
             return;
         }
 
@@ -333,42 +432,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const entry = waitlist.find(e => e.email === email);
 
             if (entry) {
-                // Show profile container
-                const containers = document.querySelectorAll('.container');
-                if (containers.length >= 2) {
-                    containers[0].style.display = 'none';
-                    containers[1].style.display = 'block';
-                }
-
-                // Populate profile details
-                const spans = {
-                    displayEmail: document.getElementById('displayEmail'),
-                    displaySolanaWallet: document.getElementById('displaySolanaWallet'),
-                    displayReferralCode: document.getElementById('displayReferralCode'),
-                    userrefcount: document.getElementById('userrefcount')
-                };
-
-                if (spans.displayEmail) spans.displayEmail.textContent = entry.email || 'Not provided';
-                if (spans.displaySolanaWallet) spans.displaySolanaWallet.textContent = formatSolanaWallet(entry.solanaWallet);
-                if (spans.displayReferralCode) spans.displayReferralCode.textContent = entry.refLink || 'Not provided';
-                if (spans.userrefcount) spans.userrefcount.textContent = entry.referrals || '0';
-
-                // Setup copy referral button
-                const copyReferralButton = document.getElementById('copyReferralButton');
-                if (copyReferralButton) {
-                    copyReferralButton.addEventListener('click', () => {
-                        const refLink = spans.displayReferralCode?.textContent || '';
-                        if (refLink && refLink !== 'Not provided') {
-                            navigator.clipboard.writeText(refLink)
-                                .then(() => alert('Referral link copied!'))
-                                .catch(() => alert('Failed to copy link.'));
-                        } else {
-                            alert('No referral link available.');
-                        }
-                    });
-                }
-
+                // Save to localStorage to persist registration
+                localStorage.setItem('registeredEmail', email);
                 sessionStorage.setItem('currentWaitlistEmail', email);
+                // Show profile immediately
+                await showProfileForRegisteredUser();
             } else {
                 // Show popup
                 const popup = document.createElement('div');
@@ -387,17 +455,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Waitlist Display on waitv.html
     if (window.location.pathname.includes('waitv.html')) {
         (async () => {
-            const email = sessionStorage.getItem('currentWaitlistEmail');
+            const email = localStorage.getItem('registeredEmail') || sessionStorage.getItem('currentWaitlistEmail');
             if (!email) {
                 alert('Please register to view profile.');
                 window.location.href = 'index.html';
                 return;
             }
 
+            sessionStorage.setItem('currentWaitlistEmail', email); // Sync with sessionStorage
             const waitlist = await getWaitlist();
             const entry = waitlist.find(e => e.email === email);
             if (!entry) {
                 alert('No waitlist data found.');
+                localStorage.removeItem('registeredEmail');
                 window.location.href = 'index.html';
                 return;
             }
@@ -432,51 +502,8 @@ document.addEventListener('DOMContentLoaded', () => {
         })();
     }
 
-    // Login Form
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        const loginEmailInput = document.getElementById('loginEmail');
-        const loginPasswordInput = document.getElementById('loginPassword');
-        const loginButton = document.getElementById('loginButton');
-        const errorMessage = document.createElement('div');
-        errorMessage.style.cssText = 'color: red; font-size: 12px; margin-top: 5px';
-        loginForm.appendChild(errorMessage);
-
-        if (!loginEmailInput || !loginPasswordInput || !loginButton) {
-            console.error('Login form elements missing');
-            return;
-        }
-
-        const validateLoginForm = () => {
-            const email = loginEmailInput.value.trim();
-            const password = loginPasswordInput.value.trim();
-            const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-            const isPasswordValid = password.length >= 8;
-            errorMessage.textContent = [
-                !isEmailValid && 'Invalid email.',
-                !isPasswordValid && 'Password must be 8+ chars.'
-            ].filter(Boolean).join(' ');
-            loginButton.disabled = !isEmailValid || !isPasswordValid;
-            loginButton.classList.toggle('disabled', !isEmailValid || !isPasswordValid);
-        };
-
-        loginEmailInput.addEventListener('input', validateLoginForm);
-        loginPasswordInput.addEventListener('input', validateLoginForm);
-        validateLoginForm();
-
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = loginEmailInput.value.trim();
-            const password = loginPasswordInput.value.trim();
-            const user = await getUserByEmail(email);
-            if (user && user.password === password) {
-                sessionStorage.setItem('currentUserEmail', email);
-                showContainer('profile-container');
-            } else {
-                alert('Invalid credentials.');
-            }
-        });
-    }
+    // Login Form (Removed since no logout button)
+    // Note: Login form section is preserved but not functional since there's no logout
 
     // Profile Page
     const profileSpans = {
@@ -491,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (profileSpans.displayEmail) profileSpans.displayEmail.textContent = currentUser.email || 'Not provided';
                 if (profileSpans.displaySolanaWallet) profileSpans.displaySolanaWallet.textContent = formatSolanaWallet(currentUser.solana_wallet);
                 if (profileSpans.displayTwitter) profileSpans.displayTwitter.textContent = currentUser.twitter || 'Not provided';
-            } else if (container2) showContainer('login');
+            }
         })();
     }
 
@@ -605,39 +632,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                 }
-            } else if (container2) showContainer('login');
+            }
         })();
     }
 
-    // Logout
-    document.querySelectorAll('.logoutButton').forEach(button => {
-        button.addEventListener('click', () => {
-            sessionStorage.clear();
-            const walletInfo = document.querySelector('.wallet-info');
-            if (walletInfo) walletInfo.style.display = 'none';
-            ['walletAge', 'claimableBalanceAge', 'transactionCount', 'claimableBalanceTx', 'IgniteBalance', 'SparksBalance', 'claimableSparkAge', 'claimableSparkTx', 'walletPublicKey', 'SpanInviteCode', 'spanInviteLink', 'IgnPerHour', 'MiningIgn', 'MiningTimer'].forEach(id => {
-                const span = document.getElementById(id);
-                if (span) span.textContent = id === 'MiningTimer' ? '00h 00m 00s' : '0';
-            });
-            const elements = {
-                polik: document.querySelector('.polik'),
-                logos: document.querySelector('.logos'),
-                logons: document.querySelector('.logons')
-            };
-            if (elements.polik) {
-                elements.polik.classList.remove('animate');
-                elements.polik.style.width = '0.1px';
-            }
-            if (elements.logos) {
-                elements.logos.classList.remove('animate');
-                elements.logos.style.marginLeft = '2px';
-            }
-            if (elements.logons) elements.logons.classList.remove('animate');
-            showContainer('login');
-        });
-    });
+    // Remove Logout Functionality (No logout button)
+    // Note: Logout section is preserved but not functional
 
-    // Solana Wallet (On Hold but Preserved)
+    // Solana Wallet (Preserved)
     const connectWalletButton = document.getElementById('connectWalletButton');
     const ALCHEMY_API_KEY = 'Pa-0rKKFoqNVZ36Z0WH1A1f1ZSatjRBA';
     const ALCHEMY_API_URL = `https://solana-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
@@ -1070,11 +1072,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     snapshot.docs.forEach(doc => batch.delete(doc.ref));
                     await batch.commit();
                 }
-                console.log('Firestore data cleared');
-                alert('Firestore data cleared. Refresh the page.');
+                // Clear localStorage and sessionStorage
+                localStorage.removeItem('registeredEmail');
+                sessionStorage.clear();
+                console.log('Firestore and local storage cleared');
+                alert('Data cleared. Refresh the page.');
             } catch (error) {
                 console.error('Failed to clear Firestore data:', error);
-                alert('Failed to clear Firestore data.');
+                alert('Failed to clear data.');
             }
         });
     }
